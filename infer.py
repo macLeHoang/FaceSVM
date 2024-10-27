@@ -6,6 +6,10 @@ import cv2
 import face_alignment
 from utils.matlab_cp2tform import get_similarity_transform_for_cv2
 
+from deepface.DeepFace import extract_faces
+
+from models import resnet_face18
+
 
 def alignment(src_img, src_pts, crop_size=(128, 128)):
         ref_pts_96_112 = [ 
@@ -78,10 +82,31 @@ def alligning_face(input, fa):
     return cropped_align
 
 
-def preprocess(im):
-    pass
+def get_face(im):
+    result = extract_faces(im, detector_backend="retinaface")
+    facial_area = result[0]["facial_area"]
+    x = facial_area['x']
+    y = facial_area['y']
+    w = facial_area['w']
+    h = facial_area['h']
+    face = im[y:y+h, x:x+w]
+
+    return face
+
+
 
 if __name__ == "__main__":
+    # load model
+    model = resnet_face18(False)
+    checkpoint = torch.load("resnet18_last.pth", map_location ="cpu",
+        weights_only=True)
+    state_dict = checkpoint["model"]
+    if list(state_dict.keys())[0].startswith('module.'):
+        state_dict = {k[7:]: v for k,
+                        v in checkpoint['model'].items()}
+            
+    model.load_state_dict(state_dict, strict=True)
+
 
     # face alignment
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -91,6 +116,17 @@ if __name__ == "__main__":
         device=device
     )
 
-    im = None
-    align_im = alligning_face(im, fa)
+    # im = None
+    # align_im = alligning_face(im, fa)
+    
+    im = cv2.imread("im.jpg")
+    face = get_face(im)
+    face = alligning_face(im[..., ::-1], fa)
+
+
+
+    cv2.imshow("face", face)
+    cv2.waitKey(0)
+
+    
 
