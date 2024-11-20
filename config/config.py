@@ -9,7 +9,7 @@ class Config(object):
     loss = 'focal_loss'
 
     use_hingle_loss = True
-    delta = 1.0
+    delta = 5
     hingle_weight = 0.5
 
     display = False
@@ -22,15 +22,15 @@ class Config(object):
     test_root = '/data1/Datasets/anti-spoofing/test/data_align_256'
     test_list = 'test.txt'
 
-    lfw_root = '/data/Datasets/lfw/lfw-align-128'
-    lfw_test_list = '/data/Datasets/lfw/lfw_test_pair.txt'
+    lfw_root = 'lfw-align-128/lfw-align-128'
+    lfw_test_list = 'lfw_test_pair.txt'
 
     checkpoints_path = 'checkpoints'
     load_model_path = 'models/resnet18.pth'
-    test_model_path = 'checkpoints/resnet18_110.pth'
-    save_interval = 10
+    test_model_path = 'resnet18_last_CE_SVM_0.1.pth'
+    save_interval = 1
 
-    train_batch_size = 128  # batch size
+    train_batch_size = 32  # batch size
     test_batch_size = 60
 
     input_shape = (1, 128, 128)
@@ -51,4 +51,4 @@ class Config(object):
     lr_decay = 0.95  # when val_loss increase, lr = lr*lr_decay
     weight_decay = 5e-4
 
-    resume=None # str, path to resume weight
+    resume="resnet18_last.pth" # str, path to resume weight

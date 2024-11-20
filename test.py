@@ -13,6 +13,7 @@ import numpy as np
 import time
 from config import Config
 from torch.nn import DataParallel
+from tqdm import tqdm
 
 
 def get_lfw_list(pair_list):
@@ -47,7 +48,9 @@ def get_featurs(model, test_list, batch_size=10):
     images = None
     features = None
     cnt = 0
-    for i, img_path in enumerate(test_list):
+
+    pbar = tqdm(enumerate(test_list), total=len(test_list), desc="get_featurs")
+    for i, img_path in pbar:
         image = load_image(img_path)
         if image is None:
             print('read {} error'.format(img_path))
@@ -61,7 +64,8 @@ def get_featurs(model, test_list, batch_size=10):
             cnt += 1
 
             data = torch.from_numpy(images)
-            data = data.to(torch.device("cuda"))
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            data = data.to(device)
             output = model(data)
             output = output.data.cpu().numpy()
 
@@ -113,6 +117,7 @@ def cal_accuracy(y_score, y_true):
             best_acc = acc
             best_th = th
 
+    # np.save("pair.npy", (y_score >= best_th))
     return (best_acc, best_th)
 
 
@@ -149,6 +154,7 @@ def lfw_test(model, img_paths, identity_list, compair_list, batch_size):
 
 
 if __name__ == '__main__':
+    import cv2 
 
     opt = Config()
     if opt.backbone == 'resnet18':
@@ -160,8 +166,15 @@ if __name__ == '__main__':
 
     model = DataParallel(model)
     # load_model(model, opt.test_model_path)
-    model.load_state_dict(torch.load(opt.test_model_path))
-    model.to(torch.device("cuda"))
+
+    state_dict = torch.load(opt.test_model_path, map_location="cpu")
+    try:
+        model.load_state_dict(state_dict["model"])
+    except:
+        model.load_state_dict(state_dict)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
 
     identity_list = get_lfw_list(opt.lfw_test_list)
     img_paths = [os.path.join(opt.lfw_root, each) for each in identity_list]

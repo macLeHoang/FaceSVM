@@ -52,16 +52,11 @@ if __name__ == "__main__":
     # query image | define path to query image here
     face1 = cv2.imread(r"test_vid\name1\5988457492112_000004.jpg") 
     face1 = get_face(face1)
-
     cv2.imwrite(os.path.join(save_demo, "query.jpg"), face1)
-
     pre1 = preprocess(face1)
-
     ims = torch.from_numpy(pre1).to(device)
-
     with torch.no_grad():
         feat = model(ims)
-
     feat = feat.cpu().numpy() # query im feature
 
     database = "database"
@@ -90,7 +85,7 @@ if __name__ == "__main__":
     print(most_sim, most_sim_conf)
 
     idx = idx.astype("int").tolist()
-    ims = sorted(glob.glob(os.path.join("database", most_sim, "norm", "*.jpg")))
+    ims = sorted(glob.glob(os.path.join(database, most_sim, "norm", "*.jpg")))
 
     empty = np.zeros((128, 128*len(idx), 3))
     for ix, index in enumerate(idx):

@@ -24,7 +24,7 @@ from test import get_lfw_list, lfw_test
 
 
 
-def save_model(model, optimizer, save_path, name, iter_cnt):
+def save_model(model, optimizer, metric_fc, save_path, name, iter_cnt):
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
@@ -32,6 +32,8 @@ def save_model(model, optimizer, save_path, name, iter_cnt):
     torch.save({
         "model": model.state_dict(),
         "optim": optimizer.state_dict(),
+        "epoch": iter_cnt,
+        "metric_fc": metric_fc.state_dict()
     }, save_name)
     return save_name
 
@@ -86,16 +88,22 @@ if __name__ == '__main__':
                                      lr=opt.lr, weight_decay=opt.weight_decay)
     scheduler = StepLR(optimizer, step_size=opt.lr_step, gamma=0.1)
 
+    start_epoch = 0
     if opt.resume is not None:
-        checkpoint = torch.load(opt.resume, map_location ="cpu")
+        checkpoint = torch.load(opt.resume, map_location ="cpu",
+                                weights_only=True)
 
         state_dict = checkpoint["model"]
         if list(state_dict.keys())[0].startswith('module.'):
             state_dict = {k[7:]: v for k,
-                          v in checkpoint['state_dict'].items()}
+                          v in checkpoint['model'].items()}
             
         model.load_state_dict(state_dict, strict=True)
         optimizer.load_state_dict(checkpoint["optim"])
+        start_epoch = checkpoint["epoch"]
+
+        scheduler.last_epoch = start_epoch
+        start_epoch += 1
 
     model.to(device)
     model = DataParallel(model)
@@ -103,8 +111,9 @@ if __name__ == '__main__':
     metric_fc = DataParallel(metric_fc)
 
 
-    for i in range(opt.max_epoch):
+    for i in range(start_epoch, opt.max_epoch):
         model.train()
+        scheduler.step()
 
         max_iter = len(trainloader)
         pbar = tqdm(enumerate(trainloader), total=max_iter)
@@ -129,9 +138,7 @@ if __name__ == '__main__':
               f"epoch {i} loss {loss.item():.4f} acc {acc:.6f}"
             )
 
-        scheduler.step()
-        if i % opt.save_interval == 0 or i == opt.max_epoch:
-            save_model(model, optimizer, opt.checkpoints_path, opt.backbone, i)
+        save_model(model, optimizer, metric_fc, opt.checkpoints_path, opt.backbone, i)
 
         # model.eval()
         # acc = lfw_test(model, img_paths, identity_list, opt.lfw_test_list, opt.test_batch_size)

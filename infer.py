@@ -1,18 +1,19 @@
 import torch
 from skimage import img_as_ubyte
 import numpy as np
+from numpy.linalg import norm
 import cv2
 
 import face_alignment
 from utils.matlab_cp2tform import get_similarity_transform_for_cv2
 
-from deepface.DeepFace import extract_faces
+# from deepface.DeepFace import extract_faces
 
 from models import resnet_face18
 
 
 def alignment(src_img, src_pts, crop_size=(128, 128)):
-        ref_pts_96_112 = [ 
+        ref_pts = ref_pts_96_112 = [ 
             [30.2946, 51.6963],
             [65.5318, 51.5014], 
             [48.0252, 71.7366],
@@ -20,13 +21,13 @@ def alignment(src_img, src_pts, crop_size=(128, 128)):
             [62.7299, 92.2041]
         ]
 
-        ref_pts = []
-        for pts in ref_pts_96_112:
-            x, y = pts
-            ref_pts.append([
-                x / 96  * crop_size[0], 
-                y / 112 * crop_size[1]
-            ])
+        # ref_pts = []
+        # for pts in ref_pts_96_112:
+        #     x, y = pts
+        #     ref_pts.append([
+        #         x / 96  * crop_size[0], 
+        #         y / 112 * crop_size[1]
+        #     ])
 
         src_pts = np.array(src_pts).reshape(5, 2)
         s = np.array(src_pts).astype(np.float32)
@@ -34,7 +35,7 @@ def alignment(src_img, src_pts, crop_size=(128, 128)):
 
         tfm = get_similarity_transform_for_cv2(s, r)
         face_img = cv2.warpAffine(src_img, tfm, crop_size)
-        return face_img
+        return face_img[..., ::-1]
 
 
 def alligning_face(input, fa):
@@ -79,6 +80,7 @@ def alligning_face(input, fa):
 
     img = img_as_ubyte(input) # RGB format
     cropped_align = alignment(img, landmark)
+
     return cropped_align
 
 
@@ -93,40 +95,86 @@ def get_face(im):
 
     return face
 
+def preprocess(image):
+    image = cv2.resize(image, (128, 128), cv2.INTER_AREA)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)[..., None]
+    image = image.transpose((2, 0, 1))
+    image = image[None]
+    image = image.astype(np.float32, copy=False)
+    image -= 127.5
+    image /= 127.5
 
+    return image
 
 if __name__ == "__main__":
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     # load model
     model = resnet_face18(False)
-    checkpoint = torch.load("resnet18_last.pth", map_location ="cpu",
+    checkpoint = torch.load("resnet18_110.pth", map_location ="cpu",
         weights_only=True)
-    state_dict = checkpoint["model"]
+    state_dict = checkpoint#["model"]
     if list(state_dict.keys())[0].startswith('module.'):
         state_dict = {k[7:]: v for k,
-                        v in checkpoint['model'].items()}
+                        v in state_dict.items()}
             
     model.load_state_dict(state_dict, strict=True)
+    model.to(device)
+    model.eval()
 
 
     # face alignment
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    fa = face_alignment.FaceAlignment(
-        face_alignment.LandmarksType.TWO_D, 
-        flip_input=False,
-        device=device
-    )
+    # 
+    # fa = face_alignment.FaceAlignment(
+    #     face_alignment.LandmarksType.TWO_D, 
+    #     flip_input=False,
+    #     device=device
+    # )
 
-    # im = None
-    # align_im = alligning_face(im, fa)
     
-    im = cv2.imread("im.jpg")
-    face = get_face(im)
-    face = alligning_face(im[..., ::-1], fa)
+    # face1 = cv2.imread("database\\name1\\norm\\000020.jpg")
+    # face1 = get_face(face1)
+    # face1 = alligning_face(face1[..., ::-1], fa)
+
+    # face2 = cv2.imread(r"lfw-align-128\lfw-align-128\Zulfiqar_Ahmed\Zulfiqar_Ahmed_0001.jpg")
+    # face2 = get_face(face2)
+    # face2 = alligning_face(face2[..., ::-1], fa)
+
+    # cv2.imwrite("1.jpg", np.uint8(face1))
+    # cv2.imwrite("2.jpg", np.uint8(face2))
+
+    # pre1 = preprocess(face1)
+    # pre2 = preprocess(face2)
+
+    # ims = np.concatenate([pre1, pre2], axis=0)
+    # ims = torch.from_numpy(ims).to(device)
+
+    # with torch.no_grad():
+    #     feat = model(ims)
+    # feat = feat.cpu().numpy()
+    # cosine = np.dot(feat[0],feat[1])/(norm(feat[0])*norm(feat[1]))
+    # print(cosine)
+
+    # query image
+    face1 = cv2.imread(r"lfw-align-128\lfw-align-128\Zach_Pillar\Zach_Pillar_0001.jpg")
+    # face1 = get_face(face1)
+    pre1 = preprocess(face1)
+
+    ims = torch.from_numpy(pre1).to(device)
+
+    with torch.no_grad():
+        feat = model(ims)
+
+    feat = feat.cpu().numpy()
+    dfeat = np.load('database\\name1\\feat.npy')
+
+    cosine = (feat @ dfeat.T) / (norm(feat, axis=-1) * norm(dfeat, axis=-1))
+    print(cosine, cosine.mean())
 
 
 
-    cv2.imshow("face", face)
-    cv2.waitKey(0)
+
+    
 
     
 
