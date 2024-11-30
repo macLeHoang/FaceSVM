@@ -31,8 +31,11 @@ def preprocess(image):
     return image
 
 if __name__ == "__main__":
+    # query image | define path to query image here
+    face = cv2.imread(r"test_vid\name1\5988457492112_000004.jpg") 
+    face1 = face.copy()
+
     save_demo = "demo"
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # load model
@@ -47,10 +50,7 @@ if __name__ == "__main__":
     model.load_state_dict(state_dict, strict=True)
     model.to(device)
     model.eval()
-
     
-    # query image | define path to query image here
-    face1 = cv2.imread(r"test_vid\name1\5988457492112_000004.jpg") 
     face1 = get_face(face1)
     cv2.imwrite(os.path.join(save_demo, "query.jpg"), face1)
     pre1 = preprocess(face1)
@@ -83,6 +83,15 @@ if __name__ == "__main__":
             idx = indexes
     
     print(most_sim, most_sim_conf)
+    if most_sim is not None:
+        cv2.putText(face, f"{most_sim} - {most_sim_conf}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+            1, (0,255,0), 2, cv2.LINE_AA)
+    else:
+        cv2.putText(face, f"Stranger", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+            1, (0,255,0), 2, cv2.LINE_AA)
+    
+    cv2.imshow("face", face)
+    cv2.waitKey(0)
 
     idx = idx.astype("int").tolist()
     ims = sorted(glob.glob(os.path.join(database, most_sim, "norm", "*.jpg")))

@@ -1,0 +1,24 @@
+#################################### Xây dựng Database ###################################################
+vào file build_database.py
+
+thay đổi dòng 115 thành tên muốn lưu trong Database
+thay đổi dòng 116 thành đường dẫn tới video muốn lưu
+
+chạy dòng lệnh:
+python build_database.py
+
+
+#################################### Demo nhận diện khuôn mặt ###################################################
+chạy dòng lệnh:
+python demo_webcam.py
+
+-> hiện lên ảnh từ webcam 
+
+- Bấm 'b' để lưu lại khuôn mặt -> đợi 1 khoảng thời gian để hệ thống nhận diện 
+-> Hiện lên ảnh với các thông tin trên ảnh:
+    + Nếu có khuôn mặt trong database -> Hiện tên và độ tương đồng
+    + Nếu không sẽ hiện là "Stranger"
+
+Sau khi thấy ảnh hiện lên các thông tin trên có thể bấm phím bất kỳ để tiếp tục 
+
+Bấm "Esc" để kết thúc chương trình

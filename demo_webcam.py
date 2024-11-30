@@ -92,8 +92,12 @@ if __name__ == "__main__":
                     idx = indexes
             
             print(most_sim, most_sim_conf)
-            cv2.putText(frame, f"{most_sim} - {most_sim_conf}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
-                   1, (0,255,0), 2, cv2.LINE_AA)
+            if most_sim is not None:
+                cv2.putText(frame, f"{most_sim} - {most_sim_conf}", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1, (0,255,0), 2, cv2.LINE_AA)
+            else:
+                cv2.putText(frame, f"Stranger", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1, (0,255,0), 2, cv2.LINE_AA)
             
             cv2.imshow("frame", frame)
             cv2.waitKey(0)

@@ -112,7 +112,10 @@ def preprocess(image):
     return image
 
 if __name__ == "__main__":
-    save_name = "database\\name4"
+    save_name = "database\\name4" # name to save in database
+    vid_name = r"test_vid\6001519687621.mp4" # video path
+    name = (vid_name.split(os.sep)[-1]).split('.')[0]
+
     if not os.path.isdir(save_name):
         os.mkdir(save_name)
         os.mkdir(os.path.join(save_name, "data"))
@@ -129,7 +132,8 @@ if __name__ == "__main__":
         device=device
     )
 
-    cap = cv2.VideoCapture(r"test_vid\6001519687621.mp4")
+    cap = cv2.VideoCapture(vid_name)
+    
     i = 0
     c = 0
     while True:
@@ -138,7 +142,7 @@ if __name__ == "__main__":
             break
 
         if i % 20 == 0:
-            cv2.imwrite(os.path.join(save_name, "data", f"6001519687621_{c:06d}.jpg"), frame)
+            cv2.imwrite(os.path.join(save_name, "data", f"{name}_{c:06d}.jpg"), frame)
             c+=1
         i+=1
 
